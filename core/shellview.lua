@@ -62,8 +62,20 @@ local function reverse(t)
     return reversed
 end
 
--- AX: START HERE
-pack_mt = { __len = function (t) return t.n end }
+-- AX: START HEREpack_mt = {
+pack_mt = {
+    __len = function (t) return t.n end,
+    __tostring = function (t)
+        local s = ""
+        local first = true
+        for i=1,t.n do
+            if not first then s = s .. "\t" end
+            s = s .. tostring(t[i])
+            first = false
+        end
+        return s
+    end
+}
 function pack(...)
     local t = { select(2, ...) }
     t.status = select(1, ...)
@@ -89,36 +101,34 @@ function ShellView:submit()
   local context = { print = core.log, console = print}
   setmetatable ( context, { __index = _G })
 
-  local as_text = table.concat(lines, "\n")
-  if #as_text == 0 then
-    self:on_text_input("\n")
-    table.insert(self.prompts, { prompt = prompt1, parent = #text} )
-    return
-  end
+  -- AX: Handle blank line
+--      if #as_text == 0 then
+--     self:on_text_input("\n")
+--     table.insert(self.prompts, { prompt = prompt1, parent = #text} )
+--     return
+--   end
 
+  local as_text = table.concat(lines, "\n")
   local func, err = load("return " .. as_text,
               nil, "bt", context)
 
   if func then
-    core.log("Line: 93")
+    core.log("HERE. . .")
 --     local success, result = pcall(func)
     local ret = pack(pcall(func))
-    if ret.status  then
-      local lines = split_lines(tostring(table.unpack(ret)))
-      for i=1, #lines do
-        core.log(lines[i])
-        self:on_text_input("\n")
-        self:on_text_input(lines[i])
-        table.insert(self.prompts, { prompt = prompt3, parent = #text} )
-        core.log("result: " .. type(result))
-      end
+--     if ret.status  then
+    local lines = split_lines(tostring(ret))
+    for i=1, #lines do
+      self:on_text_input("\n")
+      self:on_text_input(lines[i])
+      table.insert(self.prompts, { prompt = prompt3, parent = #text} )
     end
---     self:on_text_input("\n")
---     table.insert(self.prompts, { prompt = prompt3, parent = #text} )
+--     end
     self:on_text_input("\n")
     table.insert(self.prompts, { prompt = prompt1, parent = #text} )
     return
   end
+
   local func, err = load(table.concat(lines, "\n"),
               "code", "bt", context)
   if func then

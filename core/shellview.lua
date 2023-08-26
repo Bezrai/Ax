@@ -19,7 +19,9 @@ function ShellView:new(x, y, width, height)
   self.current_prompt = prompt1
   self.prompts = { { prompt = self.current_prompt, parent = 1 }}
   self.doc = Doc()
-  self.doc.text = {""}
+  self.doc.text = { "" }
+  self.context = { print = core.log, console = print }
+  setmetatable ( self.context, { __index = _G })
 end
 
 function ShellView:update()
@@ -98,8 +100,8 @@ function ShellView:submit()
 
   lines = reverse(lines)
 
-  local context = { print = core.log, console = print}
-  setmetatable ( context, { __index = _G })
+--   local context = { print = core.log, console = print}
+--   setmetatable ( context, { __index = _G })
 
   -- AX: Handle blank line
 --      if #as_text == 0 then
@@ -110,10 +112,10 @@ function ShellView:submit()
 
   local as_text = table.concat(lines, "\n")
   local func, err = load("return " .. as_text,
-              nil, "bt", context)
+              nil, "bt", self.context)
 
   if func then
-    core.log("HERE. . .")
+    core.log("[return clause]")
 --     local success, result = pcall(func)
     local ret = pack(pcall(func))
 --     if ret.status  then
@@ -129,14 +131,21 @@ function ShellView:submit()
     return
   end
 
-  local func, err = load(table.concat(lines, "\n"),
-              "code", "bt", context)
+  local func, err = load(as_text,
+              "code", "bt", self.context)
   if func then
     local ret = pack(pcall(func))
-    self:on_text_input("\n")
-    if ret.status then
-      self:on_text_input(table.unpack(ret))
+
+    core.log("[default clause]")
+
+    local lines = split_lines(tostring(ret))
+    core.log("NUM: " .. #lines)
+    for i=1, #lines do
+      self:on_text_input("\n")
+      self:on_text_input(lines[i])
+      table.insert(self.prompts, { prompt = prompt3, parent = #text} )
     end
+
     table.insert(self.prompts, { prompt = prompt3, parent = #text} )
     self:on_text_input("\n")
     table.insert(self.prompts, { prompt = prompt1, parent = #text} )
@@ -146,6 +155,7 @@ function ShellView:submit()
   else
     self:on_text_input("\n")
     table.insert(self.prompts, { prompt = prompt3, parent = #text} )
+    -- AX: fix for lines
     self:on_text_input(err)
     self:on_text_input("\n")
     table.insert(self.prompts, { prompt = prompt1, parent = #text} )
@@ -153,8 +163,8 @@ function ShellView:submit()
 end
 
 function ShellView:drawShellView()
-  local th = core.app.font:get_height()
-  local tw = core.app.font:get_width("text") / 4
+  local th = core.app.font.monospace:get_height()
+  local tw = core.app.font.monospace:get_width("text") / 4
   local pos = self.position
   local padding = self.padding
   local size = self.size
@@ -170,8 +180,8 @@ function ShellView:drawShellView()
   for i=1, #text do
     -- AX: DEBUG REMOVE
     if prompts[i] then
-    local ox = renderer.draw_text(core.app.font, prompts[i].prompt, pos.x, pos.y + (i-1)* th, { 255, 255, 255, 255})
-    renderer.draw_text(core.app.font, text[i], ox + pos.x, pos.y + (i-1)* th, { 255, 255, 255, 255})
+    local ox = renderer.draw_text(core.app.font.monospace, prompts[i].prompt, pos.x, pos.y + (i-1)* th, { 255, 255, 255, 255})
+    renderer.draw_text(core.app.font.monospace, text[i], ox + pos.x, pos.y + (i-1)* th, { 255, 255, 255, 255})
     end
   end
   -- draw cursor
@@ -245,8 +255,8 @@ function ShellView:delete_previous_char()
 end
 
 function ShellView:draw()
-    local th = core.app.font:get_height()
-    local tw = core.app.font:get_width("text") / 4
+    local th = core.app.font.monospace:get_height()
+    local tw = core.app.font.monospace:get_width("text") / 4
     local pos = self.position
     local padding = self.padding
     local size = self.size

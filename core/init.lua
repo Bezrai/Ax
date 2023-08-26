@@ -91,8 +91,8 @@ local function key_to_stroke(k, released)
 end
 
 local function updateCursorIndex()
-  local tw = app.font:get_width("text") / 4
-  local th = app.font:get_height()
+  local tw = font.monospace:get_width("text") / 4
+  local th = font.monospace:get_height()
   app.cx = app.cx + tw
   app.column = app.column + 1
 end
@@ -101,11 +101,12 @@ end
 local function handle_editor_keys(key)
   local th = app.font:get_height()
   local tw = app.font:get_width("text") / 4
-  if key == "p" then
-    if app.debug == nil then app.debug = false end
-    app.debug = not app.debug
-    print(table.concat(app.text, "\n"))
-  end
+  -- AX: REMOVE
+--   if key == "p" then
+--     if app.debug == nil then app.debug = false end
+--     app.debug = not app.debug
+--     print(table.concat(app.text, "\n"))
+--   end
   if key == "escape" then
     local width, height = renderer.get_size()
     app.mode = "default"
@@ -233,10 +234,11 @@ function core.init()
   font.big_font = renderer.font.load(EXEDIR .. "/data/fonts/font.ttf", 34 * SCALE)
   font.code_font = renderer.font.load(EXEDIR .. "/data/fonts/monospace.ttf", 13.5 * SCALE)
   font.monospace = renderer.font.load(EXEDIR .. "/data/fonts/DejaVuSansMono.ttf", 18.5 * SCALE)
-  app.font = font.monospace
+  app.font = font
 
-  local th = app.font:get_height()
-  local tw = app.font:get_width("text") / 4
+
+  local th = font.monospace:get_height()
+  local tw = font.monospace:get_width("text") / 4
 
   app.ox = 10
   app.oy = 70
@@ -369,7 +371,7 @@ function core.init()
 --   command.add_defaults()
 
   local width, height = renderer.get_size()
-  local font_height = app.font:get_height()
+  local font_height = font.monospace:get_height()
 --   app.mcy = height - font_height
   app.mcy = height - font.monospace:get_height()
 
@@ -385,8 +387,8 @@ end
 
 function core.render()
   local width, height = renderer.get_size()
-  local tw = app.font:get_width("text") / 4
-  local th = app.font:get_height()
+  local tw = font.monospace:get_width("text") / 4
+  local th = font.monospace:get_height()
 
 
   -- mode line attributes
@@ -429,9 +431,10 @@ function core.render()
 --     renderer.draw_text(app.font, tostring(i), app.ox + 15 + width / 2, (i-1) * (line_height + line_gap), { 155, 155, 155, 255})
   end
   -- render log
+  local main_th = font.main:get_height()
   if core.log_text then
     for i=1, #core.log_text do
-        renderer.draw_text(app.font, core.log_text[i], width / 2 + 20, 0 + (i-1) * th, { 255, 255, 255, 255})
+        renderer.draw_text(font.main, core.log_text[i], width / 2 + 20, 0 + (i-1) * main_th, { 255, 255, 255, 255})
     end
   end
 
@@ -451,7 +454,7 @@ function core.render()
 
   -- lines of document
   for i=1, #app.text do
-      renderer.draw_text(app.font, app.text[i], app.ox, app.oy + (i-1) * th, { 255, 255, 255, 255})
+      renderer.draw_text(font.monospace, app.text[i], app.ox, app.oy + (i-1) * th, { 255, 255, 255, 255})
   end
 
     -- draw Views:

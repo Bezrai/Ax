@@ -1,11 +1,10 @@
 local View = require "core.view"
-local Object = require "core.object"
 local Doc = require "core.doc"
 local core = require "core"
 
 local style = {}
 
-style.background = {45, 55, 35, 155}
+style.background = {15, 15, 15, 205}
 
 local prompt1 = ">"
 local prompt2 = "~"
@@ -13,14 +12,16 @@ local prompt3 = "$"
 local ShellView = View:extend()
 
 function ShellView:new(x, y, width, height)
-  self.position = { x = x or 10, y = y or 150}
+  self.position = { x = x or 10, y = y or 350}
   self.padding = { x = 10, y = 10 }
-  self.size = { width = width or 400, height = height or 300 }
+  self.size = { width = width or 400, height = height or 200 }
   self.current_prompt = prompt1
   self.prompts = { { prompt = self.current_prompt, parent = 1 }}
   self.doc = Doc()
-  self.doc.text = { "" }
-  self.context = { print = core.log, console = print }
+  self.context = {
+    print = core.log, console = print,
+    core = core, parse = require 'libraries.parse'
+  }
   setmetatable ( self.context, { __index = _G })
 end
 
@@ -28,23 +29,10 @@ function ShellView:update()
 --   style.background[2] = 125 + 50 * math.random()
 end
 
-function ShellView:drawText(text, x, y, color)
-    local position = self.position
-    local padding = self.padding
-    return renderer.draw_text(renderer.font.default_font, text, x + padding.x, y + padding.y, color or {255, 255, 255, 255})
-end
-
-function ShellView:drawText()
-  --- draw self.doc.text
-  local th = renderer.font.default_font:get_height()
-  local text = self.doc.text
-  local pos = self.position
-end
-
 
 function ShellView:on_text_input(...)
   -- AX: DEBUG
---   core.log('text_input=>' .. ...)
+--   core.log('text_input=>' .. ..., nil, {123, 255, 255, 255})
   self.doc:text_input(...)
 end
 
@@ -64,7 +52,6 @@ local function reverse(t)
     return reversed
 end
 
--- AX: START HEREpack_mt = {
 pack_mt = {
     __len = function (t) return t.n end,
     __tostring = function (t)
@@ -100,30 +87,32 @@ function ShellView:submit()
 
   lines = reverse(lines)
 
---   local context = { print = core.log, console = print}
---   setmetatable ( context, { __index = _G })
-
-  -- AX: Handle blank line
---      if #as_text == 0 then
---     self:on_text_input("\n")
---     table.insert(self.prompts, { prompt = prompt1, parent = #text} )
---     return
---   end
-
   local as_text = table.concat(lines, "\n")
   local func, err = load("return " .. as_text,
               nil, "bt", self.context)
 
+  local function exception(msg)
+    core.log(msg, "shell")
+  end
+
   if func then
     core.log("[return clause]")
---     local success, result = pcall(func)
-    local ret = pack(pcall(func))
---     if ret.status  then
-    local lines = split_lines(tostring(ret))
-    for i=1, #lines do
-      self:on_text_input("\n")
-      self:on_text_input(lines[i])
-      table.insert(self.prompts, { prompt = prompt3, parent = #text} )
+    local ret = pack(xpcall(func, function(msg)
+      core.log("shell error: " .. msg, "error")
+    end))
+
+--     if as_text:find("require 'libraries.parse'") then
+--       d = require 'debugger'
+-- --       d()
+--       DEBUG = true
+--     end
+    if #ret > 0 then
+      local lines = split_lines(tostring(ret))
+      for i=1, #lines do
+        self:on_text_input("\n")
+        self:on_text_input(lines[i])
+        table.insert(self.prompts, { prompt = prompt3, parent = #text} )
+      end
     end
 --     end
     self:on_text_input("\n")
@@ -134,19 +123,23 @@ function ShellView:submit()
   local func, err = load(as_text,
               "code", "bt", self.context)
   if func then
-    local ret = pack(pcall(func))
-
+--     local ret = pack(pcall(func))
+    local ret = pack(xpcall(func, function(msg)
+      core.log("shell error: " .. msg, "error")
+    end))
     core.log("[default clause]")
 
     local lines = split_lines(tostring(ret))
-    core.log("NUM: " .. #lines)
-    for i=1, #lines do
-      self:on_text_input("\n")
-      self:on_text_input(lines[i])
-      table.insert(self.prompts, { prompt = prompt3, parent = #text} )
+
+    if #ret > 0 then
+      for i=1, #lines do
+        self:on_text_input("\n")
+        self:on_text_input(lines[i])
+        table.insert(self.prompts, { prompt = prompt3, parent = #text} )
+      end
     end
 
-    table.insert(self.prompts, { prompt = prompt3, parent = #text} )
+--     table.insert(self.prompts, { prompt = prompt3, parent = #text} )
     self:on_text_input("\n")
     table.insert(self.prompts, { prompt = prompt1, parent = #text} )
   elseif err:find("<eof>$") then
@@ -160,34 +153,6 @@ function ShellView:submit()
     self:on_text_input("\n")
     table.insert(self.prompts, { prompt = prompt1, parent = #text} )
   end
-end
-
-function ShellView:drawShellView()
-  local th = core.app.font.monospace:get_height()
-  local tw = core.app.font.monospace:get_width("text") / 4
-  local pos = self.position
-  local padding = self.padding
-  local size = self.size
-  local text = self.doc.text
-  local prompts = self.prompts
-
-
-  -- AX: TODO Remove draw surrouding region
-  renderer.draw_rect(pos.x, pos.y, size.width, size.height, style.background)
-
-
-  -- draw text
-  for i=1, #text do
-    -- AX: DEBUG REMOVE
-    if prompts[i] then
-    local ox = renderer.draw_text(core.app.font.monospace, prompts[i].prompt, pos.x, pos.y + (i-1)* th, { 255, 255, 255, 255})
-    renderer.draw_text(core.app.font.monospace, text[i], ox + pos.x, pos.y + (i-1)* th, { 255, 255, 255, 255})
-    end
-  end
-  -- draw cursor
-  renderer.draw_rect(pos.x + ((self.doc.cursor.col-1) + 2) * tw,
-     pos.y + (self.doc.cursor.row-1) * th, tw, th, {250, 250, 150, 150})
-
 end
 
 local function splice(t, at, remove, insert)
@@ -229,10 +194,6 @@ function ShellView:raw_remove(line1, col1, line2, col2)
   end
 end
 
-local function clamp(n, lo, hi)
-  return math.max(math.min(n, hi), lo)
-end
-
 function ShellView:remove(line1, col1, line2, col2)
   line1, col1 = self.doc:sanitize_position(line1, col1)
   line2, col2 = self.doc:sanitize_position(line2, col2)
@@ -255,15 +216,31 @@ function ShellView:delete_previous_char()
 end
 
 function ShellView:draw()
-    local th = core.app.font.monospace:get_height()
-    local tw = core.app.font.monospace:get_width("text") / 4
-    local pos = self.position
-    local padding = self.padding
-    local size = self.size
-    local ox
+  local th = core.font.code_font:get_height()
+  local tw = core.font.code_font:get_width("text") / 4
+  local pos = self.position
+  local padding = self.padding
+  local size = self.size
+  local text = self.doc.text
+  local prompts = self.prompts
 
 
-    self:drawShellView()
+  -- AX: TODO Remove draw surrouding region
+  renderer.draw_rect(pos.x, pos.y, size.width, size.height, style.background)
+
+
+  -- draw text
+  for i=1, #text do
+    -- AX: DEBUG REMOVE
+    if prompts[i] then
+    local ox = renderer.draw_text(core.font.code_font, prompts[i].prompt, pos.x, pos.y + (i-1)* th, { 255, 255, 255, 255})
+    renderer.draw_text(core.font.code_font, text[i], ox + pos.x, pos.y + (i-1)* th, { 255, 255, 255, 255})
+    end
+  end
+  -- draw cursor
+  renderer.draw_rect(pos.x + ((self.doc.cursor.col-1) + 2) * tw,
+     pos.y + (self.doc.cursor.row-1) * th, tw, th, {250, 250, 150, 150})
+
 
 end
 

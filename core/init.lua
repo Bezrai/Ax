@@ -19,8 +19,28 @@ function core.try(fn, ...)
   return false
 end
 
-function core.log(...)
-    table.insert(core.log_text, tostring(table.concat({...}, " ")))
+function core.set_log_color(channel, color)
+  core.channel_colors[channel] = color
+end
+
+function core.log(message, channel, color)
+    channel = channel or "info"
+    local info = debug.getinfo(2, "nSl")
+    local time = system.get_time()
+    local short_src = info.source:gsub("^@(.*)$", "%1")
+      :match(EXEDIR .. "+(.*)$")
+    local at = string.format("%s:%d", short_src, info.currentline)
+    local channel_color = core.channel_colors[channel]
+
+    table.insert(core.logs, {
+      id = #core.logs + 1,
+      message = message,
+      channel = channel,
+      at = at,
+      time = time - core.start_time,
+      date = os.date("%H:%M:%S", time),
+      color = color or channel_color or { 255, 255, 255, 255}
+    })
 end
 
 function core.push_clip_rect(x, y, w, h)
@@ -99,8 +119,8 @@ end
 
 
 local function handle_editor_keys(key)
-  local th = app.font:get_height()
-  local tw = app.font:get_width("text") / 4
+--   local th = app.font:get_height()
+--   local tw = app.font:get_width("text") / 4
   -- AX: REMOVE
 --   if key == "p" then
 --     if app.debug == nil then app.debug = false end
@@ -151,7 +171,8 @@ function on_text_input(...)
   else
     app.command_mode_text = app.command_mode_text .. key
   end
-  app.views[1]:on_text_input(key)
+  core.views[2]:on_text_input(key)
+  core.views[3]:on_text_input(key)
 end
 
 
@@ -161,7 +182,7 @@ function on_key_pressed(...)
   local key = key_to_stroke(...)
   if did_keymap then
     for _, cmd in ipairs(did_keymap) do
-      core.log("=> " .. cmd)
+      core.log(cmd, "command")
       local performed = command.perform(cmd)
 --       if performed then break end
     end
@@ -182,7 +203,7 @@ function on_key_pressed(...)
     local text = "--line#1\n--line#2\n--line#3\n--line#4"
 --     text = "\n"
     core.log("doc:raw_insert(" .. l .. ", " .. c .. ", " .. text)
-    app.views[1].doc:raw_insert(l, c, text)
+    core.views[1].doc:raw_insert(l, c, text)
   end
   app.keys_pressed = key
 --   app.debug = ...
@@ -213,6 +234,7 @@ local function render_table(font, text, x, y, color)
   local tw = font:get_width("text") / 4
   local th = font:get_height()
   local index = 1
+
   local text_object = inspector.inspect(text, { depth = 3})
   for line in text_object:gmatch("[^\n]+") do
     renderer.draw_text(font, line, x, y + (index-1)* th, color or { 255, 255, 255, 255})
@@ -226,15 +248,23 @@ function core.init()
   command = require "core.command"
   keymap = require "core.keymap"
   ShellView = require "core.shellview"
-  app.views = {}
+  LogView = require "core.logview"
+  DocView = require "core.docview"
+  core.views = {}
 
-  table.insert(app.views, ShellView())
+  core.start_time = system.get_time()
+
+--   table.insert(core.views, ShellView())
+  table.insert(core.views, LogView())
+  table.insert(core.views, DocView())
+  table.insert(core.views, ShellView())
 
   font.main = renderer.font.load(EXEDIR .. "/data/fonts/font.ttf", 14 * SCALE)
   font.big_font = renderer.font.load(EXEDIR .. "/data/fonts/font.ttf", 34 * SCALE)
   font.code_font = renderer.font.load(EXEDIR .. "/data/fonts/monospace.ttf", 13.5 * SCALE)
   font.monospace = renderer.font.load(EXEDIR .. "/data/fonts/DejaVuSansMono.ttf", 18.5 * SCALE)
-  app.font = font
+--   app.font = font00=0
+  core.font = font
 
 
   local th = font.monospace:get_height()
@@ -247,15 +277,21 @@ function core.init()
   app.column = 1
   app.row = 1
   app.text = {"Apples & Oranges", "Pears & Peaches"}
-  core.log_text = {}
+  core.logs = {}
+  core.channel_colors = {}
   app.mode = "default"
   app.command_mode_text = ""
   app.mcx = 10
 
+  core.set_log_color("info", {150, 150, 255, 255})
+  core.set_log_color("docview", {123, 255, 255, 255})
+  core.set_log_color("command", {150, 250, 155, 255})
+  core.set_log_color("error", {250, 150, 155, 255})
+
   command.add(nil, {
     ['app:clear-log'] = function()
       core.log("clear-log!")
-      core.log_text = {}
+      core.log = {}
     end,
 
     ['doc:newline'] = function()
@@ -274,7 +310,10 @@ function core.init()
       -- update cx to be at start of line
       app.cx = app.ox
       app.column = 1
-      app.views[1]:submit()
+
+      -- AX: Renable for views
+      core.views[2]:on_text_input("\n")
+      core.views[3]:submit()
     end,
 
     ['doc:move-to-next-char'] = function()
@@ -330,7 +369,10 @@ function core.init()
       local index = app.column
       local replaced = string.sub(line, 1, index - 2) .. string.sub(line, index, #line)
 
-      app.views[1]:delete_previous_char()
+--       core.views[1]:delete_previous_char()
+      core.views[2]:delete_previous_char()
+      core.views[3]:delete_previous_char()
+
       -- if at start of line, and not at start of document append to end of previous
       if app.column == 1 and app.row ~= 1 then
         local current_line = app.text[app.row]
@@ -428,18 +470,39 @@ function core.render()
 
   for i=1, lines do
     renderer.draw_rect(offx + width / 2 - line_width, (i-1) * (line_height + line_gap), line_width, line_height, { 155, 155, 155, 255})
---     renderer.draw_text(app.font, tostring(i), app.ox + 15 + width / 2, (i-1) * (line_height + line_gap), { 155, 155, 155, 255})
-  end
-  -- render log
-  local main_th = font.main:get_height()
-  if core.log_text then
-    for i=1, #core.log_text do
-        renderer.draw_text(font.main, core.log_text[i], width / 2 + 20, 0 + (i-1) * main_th, { 255, 255, 255, 255})
-    end
+--     renderer.draw_text(font.main, tostring(i), app.ox + 15 + width / 2, (i-1) * (line_height + line_gap), { 155, 155, 155, 255})
   end
 
+  -- render log
+--   local main_th = font.main:get_height()
+--   if core.logs then
+--     for i=1, #core.logs do
+--         local log = core.logs[i]
+--         if not core.log_filter or core.log_filter(log) then
+--           renderer.draw_text(font.main, string.format("[%s] %s %s", log.channel, log.at, log.message), width / 2 + 20, 0 + (i-1) * main_th, log.color)
+--         end
+--     end
+--   end
+  local x, y = 100, 100
+  local function draw_box(x, y, w, h, color)
+    renderer.draw_rect(x, y, 1, h, color or { 255, 255, 155, 255})
+    renderer.draw_rect(x + w, y, 1, h, color or { 255, 255, 155, 255})
+    renderer.draw_rect(x, y, w, 1, color or { 255, 255, 155, 255})
+    renderer.draw_rect(x, y + h, w, 1, color or { 255, 255, 155, 255})
+  end
+    -- draw Views:
+  for i, v in ipairs(core.views) do
+    local position, size = v:get_position(), v:get_size()
+    v:draw()
+    draw_box(position.x, position.y, size.width, size.height, {125, 125, 25, 255})
+  end
+  render_table(font.main, core.views[2].doc.text, width - 500, 450, { 223, 223, 223, 245})
+--   renderer.draw_rect(100, 100, 100, 100, { 255, 255, 155, 255})
+
+
+
   -- Draw dev info
-  render_table(font.main, app.views[1].doc.text, width - 300, 50, purple)
+--   render_table(font.main, core.views[3].doc.text, width - 500, 500, purple)
 --   render_table(font.main, app, width / 2  + 10, 50, cyan)
   renderer.draw_text(font.big_font, "Ax Editor: ", 10, 10, { 255, 255, 255, 255})
   renderer.draw_rect(10, 50, 200, 1, { 5, 215, 120, 155})
@@ -454,19 +517,15 @@ function core.render()
 
   -- lines of document
   for i=1, #app.text do
-      renderer.draw_text(font.monospace, app.text[i], app.ox, app.oy + (i-1) * th, { 255, 255, 255, 255})
+--       renderer.draw_text(font.monospace, app.text[i], app.ox, app.oy + (i-1) * th, { 255, 255, 255, 255})
   end
 
-    -- draw Views:
-  for i, v in ipairs(app.views) do
-    v:draw()
-  end
 
   -- cursor
   if app.mode == "default" then
-    renderer.draw_rect(app.cx, app.cy, tw, th, { 255, 255, 220, 55})
+--     renderer.draw_rect(app.cx, app.cy, tw, th, { 255, 255, 220, 55})
   elseif app.mode == "insert" then
-    renderer.draw_rect(app.cx, app.cy, 1, th, { 255, 255, 220, 55})
+--     renderer.draw_rect(app.cx, app.cy, 1, th, { 255, 255, 220, 55})
   end
 
   local mode_desc = ""
@@ -484,7 +543,7 @@ function core.render()
 
   -- command-mode
   if app.mode == "command" then
-    renderer.draw_text(app.font, app.command_mode_text, 0, height - app.font:get_height(), { 255, 255, 255, 255})
+    renderer.draw_text(font.monospace, app.command_mode_text, 0, height - font.monospace:get_height(), { 255, 255, 255, 255})
   end
 
   renderer.end_frame()
@@ -542,7 +601,7 @@ function core.step()
   end
   -- do updating
   --- update each view
-  for i, v in pairs(app.views) do
+  for i, v in pairs(core.views) do
     v:update()
   end
 
@@ -583,7 +642,7 @@ function core.on_error(err)
   font.main = renderer.font.default_font
 
   local traceback = debug.traceback(nil, 2)
-  local lines = {}
+  local lines = { err }
   for line in traceback:gmatch("[^\n]+") do
     table.insert(lines, line)
   end

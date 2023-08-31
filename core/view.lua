@@ -12,6 +12,14 @@ function View:new()
   self.size = { width = 0, height = 0 }
 end
 
+function View:get_position()
+  return self.position
+end
+
+function View:get_size()
+  return self.size
+end
+
 function View:update()
 end
 

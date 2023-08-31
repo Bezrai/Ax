@@ -438,7 +438,14 @@ function core.init()
 --   app.mcy = height - font_height
   app.mcy = height - font.monospace:get_height()
 
-  system.set_window_title("Ax#0.0.1")
+  -- update window title
+  local name = core.active_view:get_name()
+  local title = (name ~= "---") and (name .. " - Ax") or  "Ax"
+  if title ~= core.window_title then
+    system.set_window_title(title)
+    core.window_title = title
+  end
+--   system.set_window_title("Ax#0.0.1")
   core.running = true
 end
 
@@ -634,16 +641,16 @@ function core.step()
   core.root_view.size.width, core.root_view.size.height = width, height
   core.root_view:update()
 
-  for i, v in pairs(core.views) do
-    v:update()
-  end
+--   for i, v in pairs(core.views) do
+--     v:update()
+--   end
 
   -- do rendering
   renderer.begin_frame()
 --   core.clip_rect_stack[1] = { 0, 0, width, height }
   renderer.set_clip_rect(0,0, width, height)
   -- AX: here
-  renderer.draw_rect(0, 0, width - 200, height - 0, { 55, 55, 50, 255})
+  renderer.draw_rect(0, 0, width - 200, height - 0, { 55, 55, 50, 155})
   core.root_view:draw()
   renderer.end_frame()
 

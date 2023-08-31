@@ -27,7 +27,7 @@ function DocView:on_text_input(text)
 --   core.log("on_text_input: " .. text, "docview")
   core.log('on_text_input: ' .. text, 'docview', {123, 255, 255, 255})
   self.doc:text_input(text)
-  print('text-input')
+  print('DocView:text_input')
 end
 
 local function splice(t, at, remove, insert)
@@ -96,6 +96,8 @@ function DocView:draw()
     local font = core.font.code_font
     local th = font:get_height()
     local tw = font:get_width("text") / 4
+    print("DocView:draw")
+    self:draw_background(style.background)
 
     renderer.draw_rect(p.x, p.y, size.width, size.height, style.background)
     renderer.draw_text(font, ">>> DocView <<<", 100, -th +p.y + size.height, { 255, 255, 255, 255})

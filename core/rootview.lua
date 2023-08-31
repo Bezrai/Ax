@@ -24,7 +24,7 @@ function Node:new(type)
   self.position = { x = 0, y = 0 }
   self.size = { x = 0, y = 0 }
   self.views = {}
-  self.divider = 0.5
+--   self.divider = 0.5
   if self.type == "leaf" then
     self:add_view(EmptyView())
   end
@@ -90,14 +90,14 @@ function Node:draw()
 --     end
 --   print("LEAF")
 
-  render_table(core.font.main, core.active_view, 200, 0, { 223, 223, 223, 245})
+  render_table(core.font.main, self.active_view, 400, 0, { 223, 223, 223, 245})
 
-  renderer.draw_rect(0, 0, 200, 200, { 155, 55, 50, 255})
+  renderer.draw_rect(0, 0, 100, 200, { 155, 55, 50, 255})
 
     local pos, size = self.active_view.position, self.active_view.size
-    core.push_clip_rect(pos.x, pos.y, size.width + pos.x % 1, size.height + pos.y % 1)
+--     core.push_clip_rect(pos.x, pos.y, size.width + pos.x % 1, size.height + pos.y % 1)
     self.active_view:draw()
-    core.pop_clip_rect()
+--     core.pop_clip_rect()
   else
 --     local x, y, w, h = self:get_divider_rect()
 --     renderer.draw_rect(x, y, w, h, style.divider)

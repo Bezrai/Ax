@@ -228,10 +228,10 @@ function ShellView:draw()
   local text = self.doc.text
   local prompts = self.prompts
 
-  self:draw_background( { 31, 31, 43, 255 })
+  self:draw_background( style.background)
 
   -- AX: TODO Remove draw surrouding region
-  renderer.draw_rect(pos.x, pos.y, size.width, size.height, style.background)
+--   renderer.draw_rect(pos.x, pos.y, size.width, size.height, style.background)
 
 
   -- draw text

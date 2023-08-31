@@ -15,7 +15,11 @@ function DocView:new(x, y, width, height)
   self.doc = Doc()
 end
 
-function View:update()
+function DocView:get_name()
+  return "DocView"
+end
+
+function DocView:update()
 --   style.background[2] = 15 * math.random()
 end
 
@@ -23,6 +27,7 @@ function DocView:on_text_input(text)
 --   core.log("on_text_input: " .. text, "docview")
   core.log('on_text_input: ' .. text, 'docview', {123, 255, 255, 255})
   self.doc:text_input(text)
+  print('text-input')
 end
 
 local function splice(t, at, remove, insert)

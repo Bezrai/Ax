@@ -25,6 +25,10 @@ function ShellView:new(x, y, width, height)
   setmetatable ( self.context, { __index = _G })
 end
 
+function ShellView:get_name()
+  return "ShellView"
+end
+
 function ShellView:update()
 --   style.background[2] = 125 + 50 * math.random()
 end
@@ -224,6 +228,7 @@ function ShellView:draw()
   local text = self.doc.text
   local prompts = self.prompts
 
+  self:draw_background( { 31, 31, 43, 255 })
 
   -- AX: TODO Remove draw surrouding region
   renderer.draw_rect(pos.x, pos.y, size.width, size.height, style.background)

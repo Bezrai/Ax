@@ -60,6 +60,14 @@ function core.pop_clip_rect()
   renderer.set_clip_rect(x, y, w, h)
 end
 
+function core.set_active_view(view)
+  assert(view, "Tried to set active view to nil")
+  if view ~= core.active_view then
+    core.last_active_view = core.active_view
+    core.active_view = view
+  end
+end
+
 
 local modkey_map = {
   ["left ctrl"]   = "ctrl",
@@ -250,14 +258,27 @@ function core.init()
   ShellView = require "core.shellview"
   LogView = require "core.logview"
   DocView = require "core.docview"
+  RootView = require "core.rootview"
+
   core.views = {}
 
   core.start_time = system.get_time()
 
+
+  core.root_view = RootView()
+
+  core.log_view = LogView()
+  core.doc_view = DocView()
+  core.shell_view = ShellView()
+
+  core.root_view.root_node:add_view(core.log_view)
+  core.root_view.root_node:add_view(core.doc_view)
+  core.root_view.root_node:add_view(core.shell_view)
+
 --   table.insert(core.views, ShellView())
-  table.insert(core.views, LogView())
-  table.insert(core.views, DocView())
-  table.insert(core.views, ShellView())
+  table.insert(core.views, core.log_view)
+  table.insert(core.views, core.doc_view)
+  table.insert(core.views, core.shell_view)
 
   font.main = renderer.font.load(EXEDIR .. "/data/fonts/font.ttf", 14 * SCALE)
   font.big_font = renderer.font.load(EXEDIR .. "/data/fonts/font.ttf", 34 * SCALE)
@@ -553,19 +574,24 @@ end
 function core.on_event(type, ...)
   local did_keymap = false
   if type == "textinput" then
-    on_text_input(...)
+--     on_text_input(...)
+    core.root_view:on_text_input(...)
   elseif type == "keypressed" then
     did_keymap = on_key_pressed(...)
   elseif type == "keyreleased" then
     on_key_released(...)
   elseif type == "mousemoved" then
     on_mouse_moved(...)
+    core.root_view:on_mouse_moved(...)
   elseif type == "mousepressed" then
     on_mouse_pressed(...)
+    core.root_view:on_mouse_pressed(...)
   elseif type == "mousereleased" then
     on_mouse_released(...)
+    core.root_view:on_mouse_released(...)
   elseif type == "mousewheel" then
     on_mouse_wheel(...)
+    core.root_view:on_mouse_wheel(...)
   elseif type == "filedropped" then
     local filename, mx, my = ...
     local info = system.get_file_info(filename)
@@ -601,12 +627,28 @@ function core.step()
   end
   -- do updating
   --- update each view
+
+  local width, height = renderer.get_size()
+
+  -- update
+  core.root_view.size.width, core.root_view.size.height = width, height
+  core.root_view:update()
+
   for i, v in pairs(core.views) do
     v:update()
   end
 
   -- do rendering
-  core.render()
+  renderer.begin_frame()
+--   core.clip_rect_stack[1] = { 0, 0, width, height }
+  renderer.set_clip_rect(0,0, width, height)
+  -- AX: here
+  renderer.draw_rect(0, 0, width - 200, height - 0, { 55, 55, 50, 255})
+  core.root_view:draw()
+  renderer.end_frame()
+
+
+--   core.render()
   return true
 end
 

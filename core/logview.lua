@@ -44,7 +44,7 @@ function LogView:draw()
   local ox, oy = padding.x, padding.y
   local th = font:get_height()
   local y = position.y + oy
-  local th = font:get_height()
+--   local th = font:get_height()
 
   style.text = { 137, 137, 171, 255 }
   style.dim = { 98, 98, 92, 255 }

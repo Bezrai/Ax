@@ -239,12 +239,12 @@ function on_mouse_wheel(...)
 --   print("on_mouse_wheel", ...)
 end
 
-local function render_table(font, text, x, y, color)
+local function render_table(font, text, x, y, color, depth)
   local tw = font:get_width("text") / 4
   local th = font:get_height()
   local index = 1
 
-  local text_object = inspector.inspect(text, { depth = 3})
+  local text_object = inspector.inspect(text, { depth = depth or 1})
   for line in text_object:gmatch("[^\n]+") do
     renderer.draw_text(font, line, x, y + (index-1)* th, color or { 255, 255, 255, 255})
     index = index + 1
@@ -262,7 +262,7 @@ function core.init()
   RootView = require "core.rootview"
 
   core.views = {}
-
+  core.active_views = {}
   core.start_time = system.get_time()
 
 
@@ -273,7 +273,7 @@ function core.init()
   core.shell_view = ShellView()
 
   core.root_view.root_node:split("right", core.log_view, true)
-  core.root_view.root_node.a:split("down", core.doc_view, true)
+--   core.root_view.root_node.a:split("down", core.doc_view, true)
   core.root_view.root_node.b:split("down", core.shell_view, true)
 
 --   table.insert(core.views, ShellView())
@@ -638,6 +638,16 @@ function core.step()
 
   local width, height = renderer.get_size()
 
+  local nodes = {}
+  local function get_nodes(node)
+    table.insert(nodes, node.active_view)
+    if node.type == "leaf" then
+      return
+    end
+    get_nodes(node.a)
+    get_nodes(node.b)
+  end
+  get_nodes(core.root_view.root_node)
   -- update
   core.root_view.size.width, core.root_view.size.height = width, height
   core.root_view:update()
@@ -651,8 +661,10 @@ function core.step()
 --   core.clip_rect_stack[1] = { 0, 0, width, height }
   renderer.set_clip_rect(0,0, width, height)
   -- AX: here
-  renderer.draw_rect(0, 0, width - 100, height - 0, { 55, 75, 70, 255})
-  render_table(style.main, core.root_view.root_node, 400, 0, { 223, 223, 223, 245})
+  renderer.draw_rect(0, 0, width - 00, height - 0, { 5, 5, 10, 255})
+  for i=1, #nodes  do
+    render_table(style.main, nodes[i], (i-1) * 150 + 20, 100, { 223, 223, 223, 245}, 2)
+  end
 
   core.root_view:draw()
   renderer.end_frame()

@@ -209,19 +209,20 @@ function Node:draw()
     local width, height = renderer.get_size()
 
 --     renderer.draw_rect(0, 0, width, height, { 55, 55, 50, 155})
-    render_table(style.main, self.active_view, 700, 0, { 223, 223, 223, 245})
 --     core.log(tostring(self.active_view:get_name()))
     local pos, size = self.active_view.position, self.active_view.size
-    draw_box(pos.x, pos.y, size.width + 10, size.height + 10, {255, 0, 255, 255})
-    draw_box(0, 0, 100, 100, {255, 0, 255, 255})
+    render_table(style.main, {"self.active_view", pos.x, pos.y, size.width, size.height}, 500, 10, { 123, 253, 223, 245})
+
+    render_table(style.main, core.clip_rect_stack, 200, 10, { 123, 253, 223, 245})
     core.push_clip_rect(pos.x, pos.y, size.width + pos.x % 1, size.height + pos.y % 1)
     self.active_view:draw()
     core.pop_clip_rect()
---     print("HELLO")
+    draw_box(pos.x, pos.y, size.width + 10, size.height + 10, {255, 0, 255, 255})
+--     render_table(style.main, self.active_view, 700, 0, { 223, 223, 223, 245})
   else
---     local x, y, w, h = self:get_divider_rect()
+    local x, y, w, h = self:get_divider_rect()
 --     core.log(table.concat({tostring(x), tostring(y), tostring(w), tostring(h)}, " "))
---     renderer.draw_rect(x, y, w, h, { 21, 21, 28, 255 })
+    renderer.draw_rect(x, y, w, h, { 21, 21, 28, 255 })
 
 --     renderer.draw_rect(0, 0, 200, 200, { 121, 21, 228, 155 })
     self:propagate("draw")

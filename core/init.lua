@@ -613,6 +613,48 @@ function core.on_event(type, ...)
   return did_keymap
 end
 
+
+function core.update()
+  local width, height = renderer.get_size()
+
+  -- update
+  core.root_view.size.width, core.root_view.size.height = width, height
+  core.root_view:update()
+
+end
+
+function core.render()
+  local width, height = renderer.get_size()
+
+  local nodes = {}
+  local function get_nodes(node)
+    table.insert(nodes, node.active_view)
+    if node.type == "leaf" then
+      return
+    end
+    get_nodes(node.a)
+    get_nodes(node.b)
+  end
+  get_nodes(core.root_view.root_node)
+
+
+
+  renderer.begin_frame()
+
+  core.clip_rect_stack[1] = { 0, 0, width, height }
+  renderer.set_clip_rect(table.unpack(core.clip_rect_stack[1]))
+  -- AX: here
+  renderer.draw_rect(0, 0, width - 00, height - 0, { 5, 5, 10, 255})
+  core.root_view:draw()
+
+  for i=1, #nodes  do
+    render_table(style.main, nodes[i], (i-1) * 150 + 20, 50, { 223, 223, 223, 245}, 2)
+  end
+
+  renderer.end_frame()
+
+end
+
 function core.step()
   -- handle events
   local did_keymap = false
@@ -636,41 +678,14 @@ function core.step()
   -- do updating
   --- update each view
 
-  local width, height = renderer.get_size()
 
-  local nodes = {}
-  local function get_nodes(node)
-    table.insert(nodes, node.active_view)
-    if node.type == "leaf" then
-      return
-    end
-    get_nodes(node.a)
-    get_nodes(node.b)
-  end
-  get_nodes(core.root_view.root_node)
-  -- update
-  core.root_view.size.width, core.root_view.size.height = width, height
-  core.root_view:update()
-
+  core.update()
 --   for i, v in pairs(core.views) do
 --     v:update()
 --   end
 
   -- do rendering
-  renderer.begin_frame()
---   core.clip_rect_stack[1] = { 0, 0, width, height }
-  renderer.set_clip_rect(0,0, width, height)
-  -- AX: here
-  renderer.draw_rect(0, 0, width - 00, height - 0, { 5, 5, 10, 255})
-  for i=1, #nodes  do
-    render_table(style.main, nodes[i], (i-1) * 150 + 20, 100, { 223, 223, 223, 245}, 2)
-  end
-
-  core.root_view:draw()
-  renderer.end_frame()
-
-
---   core.render()
+  core.render()
   return true
 end
 

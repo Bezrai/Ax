@@ -1,4 +1,5 @@
 local core = require "core"
+local style = require "core.style"
 -- local common = require "core.common"
 -- local style = require "core.style"
 local keymap = require "core.keymap"
@@ -10,9 +11,10 @@ local EmptyView = View:extend()
 
 
 function EmptyView:draw()
+  self:draw_background({13, 13, 255, 255})
   local x = self.position.x + self.size.width / 2
   local y = self.position.y + self.size.height / 2
-  renderer.draw_text(core.font, ">>> EmptyView <<<", x, y, { 255, 255, 255, 255})
+  renderer.draw_text(style.big_font, ">>> EmptyView <<<", x, y, { 255, 255, 255, 255})
 end
 
 
@@ -57,6 +59,39 @@ function Node:set_active_view(view)
   core.set_active_view(view)
 end
 
+local type_map = { up="vsplit", down="vsplit", left="hsplit", right="hsplit" }
+
+function Node:split(dir, view, locked)
+  assert(self.type == "leaf", "Tried to split non-leaf node")
+  local type = assert(type_map[dir], "Invalid direction")
+  local last_active = core.active_view
+  local child = Node()
+  child:consume(self)
+  self:consume(Node(type))
+  self.a = child
+  self.b = Node()
+  if view then self.b:add_view(view) end
+  if locked then
+    self.b.locked = locked
+    core.set_active_view(last_active)
+  end
+  if dir == "up" or dir == "left" then
+    self.a, self.b = self.b, self.a
+  end
+  return child
+end
+
+function Node:get_divider_rect()
+  local style = {}
+  style.divider_size = 1
+  local x, y = self.position.x, self.position.y
+  if self.type == "hsplit" then
+    return x + self.a.size.x, y, style.divider_size, self.size.y
+  elseif self.type == "vsplit" then
+    return x, y + self.a.size.y, self.size.x, style.divider_size
+  end
+end
+
 function Node:update()
   if self.type == "leaf" then
     for _, view in ipairs(self.views) do
@@ -85,22 +120,22 @@ end
 
 function Node:draw()
   if self.type == "leaf" then
---     if #self.views > 1 then
---       self:draw_tabs()
---     end
---   print("LEAF")
 
-  render_table(core.font.main, self.active_view, 400, 0, { 223, 223, 223, 245})
+    local width, height = renderer.get_size()
 
-  renderer.draw_rect(0, 0, 100, 200, { 155, 55, 50, 255})
-
-    local pos, size = self.active_view.position, self.active_view.size
+--     renderer.draw_rect(0, 0, width, height, { 55, 55, 50, 155})
+--     render_table(style.main, self, 400, 0, { 223, 223, 223, 245})
+--     core.log(tostring(self.active_view:get_name()))
+--     local pos, size = self.active_view.position, self.active_view.size
 --     core.push_clip_rect(pos.x, pos.y, size.width + pos.x % 1, size.height + pos.y % 1)
     self.active_view:draw()
 --     core.pop_clip_rect()
   else
 --     local x, y, w, h = self:get_divider_rect()
---     renderer.draw_rect(x, y, w, h, style.divider)
+--     core.log(table.concat({tostring(x), tostring(y), tostring(w), tostring(h)}, " "))
+--     renderer.draw_rect(x, y, w, h, { 21, 21, 28, 255 })
+
+--     renderer.draw_rect(0, 0, 200, 200, { 121, 21, 228, 155 })
     self:propagate("draw")
   end
 end
@@ -121,8 +156,9 @@ end
 
 
 function RootView:on_text_input(...)
-  print('rootview-text-input')
-  print(inspector.inspect(core.active_view))
+  core.log('rootview-text-input')
+  core.log(inspector.inspect(core.root_view.size))
+--   core.log(core.active_view:get_name())
   core.active_view:on_text_input(...)
 end
 

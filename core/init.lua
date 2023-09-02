@@ -1,4 +1,5 @@
 local inspector = require "libraries.inspect"
+local style = require "core.style"
 local keymap
 local command
 local core = {}
@@ -271,25 +272,25 @@ function core.init()
   core.doc_view = DocView()
   core.shell_view = ShellView()
 
-  core.root_view.root_node:add_view(core.log_view)
-  core.root_view.root_node:add_view(core.doc_view)
-  core.root_view.root_node:add_view(core.shell_view)
+  core.root_view.root_node:split("right", core.log_view, true)
+  core.root_view.root_node.a:split("down", core.doc_view, true)
+  core.root_view.root_node.b:split("down", core.shell_view, true)
 
 --   table.insert(core.views, ShellView())
   table.insert(core.views, core.log_view)
   table.insert(core.views, core.doc_view)
   table.insert(core.views, core.shell_view)
 
-  font.main = renderer.font.load(EXEDIR .. "/data/fonts/font.ttf", 14 * SCALE)
-  font.big_font = renderer.font.load(EXEDIR .. "/data/fonts/font.ttf", 34 * SCALE)
-  font.code_font = renderer.font.load(EXEDIR .. "/data/fonts/monospace.ttf", 13.5 * SCALE)
-  font.monospace = renderer.font.load(EXEDIR .. "/data/fonts/DejaVuSansMono.ttf", 18.5 * SCALE)
+--   font.main = renderer.font.load(EXEDIR .. "/data/fonts/font.ttf", 14 * SCALE)
+--   font.big_font = renderer.font.load(EXEDIR .. "/data/fonts/font.ttf", 34 * SCALE)
+--   font.code_font = renderer.font.load(EXEDIR .. "/data/fonts/monospace.ttf", 13.5 * SCALE)
+--   font.monospace = renderer.font.load(EXEDIR .. "/data/fonts/DejaVuSansMono.ttf", 18.5 * SCALE)
 --   app.font = font00=0
-  core.font = font
+--   core.font = font
 
 
-  local th = font.monospace:get_height()
-  local tw = font.monospace:get_width("text") / 4
+  local th = style.monospace:get_height()
+  local tw = style.monospace:get_width("text") / 4
 
   app.ox = 10
   app.oy = 70
@@ -434,9 +435,9 @@ function core.init()
 --   command.add_defaults()
 
   local width, height = renderer.get_size()
-  local font_height = font.monospace:get_height()
+  local font_height = style.monospace:get_height()
 --   app.mcy = height - font_height
-  app.mcy = height - font.monospace:get_height()
+  app.mcy = height - style.monospace:get_height()
 
   -- update window title
   local name = core.active_view:get_name()
@@ -650,7 +651,9 @@ function core.step()
 --   core.clip_rect_stack[1] = { 0, 0, width, height }
   renderer.set_clip_rect(0,0, width, height)
   -- AX: here
-  renderer.draw_rect(0, 0, width - 200, height - 0, { 55, 55, 50, 155})
+  renderer.draw_rect(0, 0, width - 100, height - 0, { 55, 75, 70, 255})
+  render_table(style.main, core.root_view.root_node, 400, 0, { 223, 223, 223, 245})
+
   core.root_view:draw()
   renderer.end_frame()
 

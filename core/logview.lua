@@ -1,10 +1,9 @@
 local View = require "core.view"
 local Doc = require "core.doc"
 local core = require "core"
+local style = require "core.style"
 
-local style = {}
-
-style.background = {10, 10, 10, 205}
+-- style.background = {10, 10, 10, 205}
 
 -- local prompt1 = ">"
 -- local prompt2 = "~"
@@ -19,6 +18,7 @@ function LogView:new(x, y, width, height)
 end
 
 function LogView:update()
+--   core.log("UPDATING")
 end
 
 
@@ -39,7 +39,7 @@ function LogView:draw()
   local position = self.position
   local padding = self.padding
   local size = self.size
-  local font = core.font.main
+  local font = style.main
 
   local ox, oy = padding.x, padding.y
   local th = font:get_height()
@@ -57,10 +57,10 @@ function LogView:draw()
     local color = log.color
     local date = log.date
 
-    x = renderer.draw_text(core.font.main, date .. "  ", x, y, style.dim)
-    x, y = draw_text_multiline(core.font.main, log.message, x, y, color)
-    x = renderer.draw_text(core.font.main, " at ", x, y, style.dim)
-    x = renderer.draw_text(core.font.main, log.at, x, y, style.white)
+    x = renderer.draw_text(style.main, date .. "  ", x, y, style.dim)
+    x, y = draw_text_multiline(style.main, log.message, x, y, color)
+    x = renderer.draw_text(style.main, " at ", x, y, style.dim)
+    x = renderer.draw_text(style.main, log.at, x, y, style.white)
     y = y + th
 
   end

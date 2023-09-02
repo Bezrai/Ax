@@ -20,6 +20,13 @@ function View:get_size()
   return self.size
 end
 
+-- gets the location and size of view
+function View:get_content_bounds()
+  local x = self.position.x
+  local y = self.position.y
+  return x, y, x + self.size.width, y + self.size.height
+end
+
 function View:get_name()
   return "---"
 end

@@ -1,10 +1,10 @@
 local View = require "core.view"
 local Doc = require "core.doc"
 local core = require "core"
+local style = require "core.style"
 
-local style = {}
 
-style.background = {35, 35, 55, 155}
+-- style.background = {35, 35, 55, 155}
 
 local DocView = View:extend()
 
@@ -93,14 +93,15 @@ function DocView:draw()
     local p = self.position
     local size = self.size
     local text = self.doc.text
-    local font = core.font.code_font
+    local font = style.code_font
     local th = font:get_height()
     local tw = font:get_width("text") / 4
-    print("DocView:draw")
+    -- AX: remove
+--     core.log("DocView:draw")
     self:draw_background(style.background)
 
     renderer.draw_rect(p.x, p.y, size.width, size.height, style.background)
-    renderer.draw_text(font, ">>> DocView <<<", 100, -th +p.y + size.height, { 255, 255, 255, 255})
+    renderer.draw_text(font, ">>> DocView <<<", p.x + 100, -th +p.y + size.height, { 255, 255, 255, 255})
 
     for i=1, #text do
       renderer.draw_text(font, text[i], p.x, p.y + (i-1) * th, { 255, 255, 255, 255})

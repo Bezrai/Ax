@@ -1,10 +1,9 @@
 local View = require "core.view"
 local Doc = require "core.doc"
 local core = require "core"
+local style = require "core.style"
 
-local style = {}
-
-style.background = {15, 15, 15, 205}
+-- style.background = {15, 15, 15, 205}
 
 local prompt1 = ">"
 local prompt2 = "~"
@@ -31,6 +30,7 @@ end
 
 function ShellView:update()
 --   style.background[2] = 125 + 50 * math.random()
+--   core.log("UPDATING")
 end
 
 
@@ -220,13 +220,14 @@ function ShellView:delete_previous_char()
 end
 
 function ShellView:draw()
-  local th = core.font.code_font:get_height()
-  local tw = core.font.code_font:get_width("text") / 4
+  local th = style.code_font:get_height()
+  local tw = style.code_font:get_width("text") / 4
   local pos = self.position
   local padding = self.padding
   local size = self.size
   local text = self.doc.text
   local prompts = self.prompts
+--   core.log("DRAWING")
 
   self:draw_background( style.background)
 
@@ -238,8 +239,8 @@ function ShellView:draw()
   for i=1, #text do
     -- AX: DEBUG REMOVE
     if prompts[i] then
-    local ox = renderer.draw_text(core.font.code_font, prompts[i].prompt, pos.x, pos.y + (i-1)* th, { 255, 255, 255, 255})
-    renderer.draw_text(core.font.code_font, text[i], ox + pos.x, pos.y + (i-1)* th, { 255, 255, 255, 255})
+    local ox = renderer.draw_text(style.code_font, prompts[i].prompt, pos.x, pos.y + (i-1)* th, { 255, 255, 255, 255})
+    renderer.draw_text(style.code_font, text[i], ox + pos.x, pos.y + (i-1)* th, { 255, 255, 255, 255})
     end
   end
   -- draw cursor
